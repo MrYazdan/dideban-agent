@@ -7,25 +7,29 @@ import (
 	"github.com/spf13/viper"
 )
 
-// setDefaults sets default configuration values
+// setDefaults registers default configuration values.
+//
+// Defaults are applied before reading configuration files
+// or environment variables.
 func setDefaults(v *viper.Viper) {
 	// Agent defaults
 	v.SetDefault("agent.interval", 30*time.Second)
 	v.SetDefault("agent.id", getDefaultAgentID())
 
-	// Core defaults
+	// Core defaults (empty by default, required in production)
 	v.SetDefault("core.endpoint", "")
 	v.SetDefault("core.token", "")
 
-	// Log
+	// Logging defaults
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.pretty", true)
 
-	// Mode
+	// Application mode
 	v.SetDefault("mode", ModeDevelopment)
 }
 
-// getDefaultAgentID generates a default agent ID based on hostname
+// getDefaultAgentID generates a default agent identifier
+// based on the system hostname.
 func getDefaultAgentID() string {
 	hostname, err := os.Hostname()
 	if err != nil {
