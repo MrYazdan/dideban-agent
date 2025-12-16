@@ -3,6 +3,7 @@ package logger
 import (
 	"io"
 	"os"
+	"strings"
 
 	"dideban-agent/internal/config"
 
@@ -10,34 +11,54 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Init initializes the global logger based on configuration
+// Init initializes the global structured logger for the application.
+//
+// This function configures:
+//   - Global log level
+//   - Output format (JSON or pretty console output)
+//   - Timestamp injection
+//
+// IMPORTANT:
+//   - This function should be called exactly once during application startup.
+//   - It mutates the global zerolog logger used across the entire application.
 func Init(cfg *config.Config) {
-	// Set global log level
-	zerolog.SetGlobalLevel(getLogLevel(cfg.Log.Level))
+	// Set global log level based on configuration
+	zerolog.SetGlobalLevel(parseLogLevel(cfg.Log.Level))
 
-	// Configure output format
+	// Configure log output destination
 	var output io.Writer = os.Stderr
+
+	// Enable human-readable console output in development mode
 	if cfg.Log.Pretty {
-		// Pretty console output
 		output = zerolog.ConsoleWriter{
 			Out:        os.Stderr,
 			TimeFormat: "2006-01-02 15:04:05",
 		}
 	}
 
-	// Set global logger
+	// Override the global logger instance
 	log.Logger = zerolog.New(output).
 		With().
 		Timestamp().
 		Logger()
 }
 
-// getLogLevel determines log level from environment
-func getLogLevel(levelStr string) zerolog.Level {
-	switch levelStr {
+// parseLogLevel converts a string log level into zerolog.Level.
+//
+// Supported levels:
+//   - debug
+//   - info
+//   - warn
+//   - error
+//   - fatal
+//   - panic
+//
+// Any unknown value defaults to info level.
+func parseLogLevel(level string) zerolog.Level {
+	switch strings.ToLower(level) {
 	case "debug":
 		return zerolog.DebugLevel
-	case "warn":
+	case "warn", "warning":
 		return zerolog.WarnLevel
 	case "error":
 		return zerolog.ErrorLevel
