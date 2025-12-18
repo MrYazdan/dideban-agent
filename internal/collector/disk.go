@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"runtime"
 
 	"github.com/shirou/gopsutil/disk"
 )
@@ -36,7 +37,11 @@ func (d *DiskCollector) Collect(ctx context.Context, metrics *Metrics) error {
 	}
 
 	// Retrieve disk usage statistics for the root filesystem
-	usage, err := disk.Usage("/")
+	path := "/"
+	if runtime.GOOS == "windows" {
+		path = "C:"
+	}
+	usage, err := disk.Usage(path)
 	if err != nil {
 		return fmt.Errorf("failed to get disk usage: %w", err)
 	}

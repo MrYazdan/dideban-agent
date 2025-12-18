@@ -3,6 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -69,7 +72,11 @@ func Load() (*Config, error) {
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
-	v.AddConfigPath("$HOME/.dideban/agent")
+
+	// Cross-platform config directory
+	if configDir := getConfigDir(); configDir != "" {
+		v.AddConfigPath(configDir)
+	}
 
 	// Environment variable support
 	v.SetEnvPrefix("DIDEBAN")
@@ -99,4 +106,19 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// getConfigDir returns the appropriate config directory for the current OS
+func getConfigDir() string {
+	if runtime.GOOS == "windows" {
+		if appData := os.Getenv("APPDATA"); appData != "" {
+			return filepath.Join(appData, "dideban", "agent")
+		}
+		return ""
+	}
+
+	if home := os.Getenv("HOME"); home != "" {
+		return filepath.Join(home, ".dideban", "agent")
+	}
+	return ""
 }
