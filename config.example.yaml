@@ -1,0 +1,46 @@
+# Dideban Agent Configuration Example
+# Copy this file to config.yaml and customize for your environment
+
+# Agent configuration
+agent:
+  # Unique identifier for this agent instance
+  id: "vpc-node-01"
+  
+  # Metric collection interval
+  interval: 30s
+
+# Dideban Core backend configuration
+core:
+  # API endpoint for metric submission
+  endpoint: "https://dideban.internal/api/metrics"
+  
+  # Authentication token (keep this secret!)
+  token: "AGENT_SECRET_TOKEN"
+
+# HTTP sender configuration (optional - uses sensible defaults)
+sender:
+  # Maximum retry attempts for failed requests
+  max_retries: 3
+  
+  # Initial delay between retries (exponential backoff)
+  initial_retry_delay: 1s
+  
+  # Maximum delay between retries
+  max_retry_delay: 30s
+  
+  # Timeout for individual HTTP requests
+  request_timeout: 10s
+  
+  # Overall HTTP client timeout
+  client_timeout: 30s
+
+# Logging configuration
+log:
+  # Log level: debug, info, warn, error, fatal, panic
+  level: "info"
+  
+  # Pretty console output (disable in production)
+  pretty: true
+
+# Application mode: development or production
+mode: "development"
