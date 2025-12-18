@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+    
+    - name: Build binaries
+      run: |
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dideban-agent-linux-amd64 ./cmd/dideban-agent
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dideban-agent-linux-arm64 ./cmd/dideban-agent
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dideban-agent-windows-amd64.exe ./cmd/dideban-agent
+    
+    - name: Create checksums
+      run: |
+        sha256sum dideban-agent-* > checksums.txt
+    
+    - name: Extract changelog
+      id: changelog
+      run: |
+        version=${{ github.ref_name }}
+        version_clean=${version#v}
+        
+        # Extract changelog for this version
+        awk -v version="[$version_clean]" '
+        $0 ~ "^## " version {
+          found=1; next
+        }
+        found && /^## / {
+          exit
+        }
+        found {
+          print
+        }' CHANGELOG.md > release_notes.md
+        
+        # Set output for use in release
+        echo "notes<<EOF" >> $GITHUB_OUTPUT
+        cat release_notes.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dideban-agent-linux-amd64
+          dideban-agent-linux-arm64
+          dideban-agent-windows-amd64.exe
+          checksums.txt
+        body: ${{ steps.changelog.outputs.notes }}
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
