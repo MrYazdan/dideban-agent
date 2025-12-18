@@ -34,7 +34,7 @@ jobs:
         go build -ldflags="-s -w" -o dideban-agent-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/dideban-agent
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dideban-agent-${{ matrix.goos }}-${{ matrix.goarch }}
         path: dideban-agent-${{ matrix.goos }}-${{ matrix.goarch }}
