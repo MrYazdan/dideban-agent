@@ -24,6 +24,13 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.pretty", true)
 
+	// Sender defaults
+	v.SetDefault("sender.max_retries", 3)
+	v.SetDefault("sender.initial_retry_delay", 1*time.Second)
+	v.SetDefault("sender.max_retry_delay", 30*time.Second)
+	v.SetDefault("sender.request_timeout", 10*time.Second)
+	v.SetDefault("sender.client_timeout", 30*time.Second)
+
 	// Application mode
 	v.SetDefault("mode", ModeDevelopment)
 }

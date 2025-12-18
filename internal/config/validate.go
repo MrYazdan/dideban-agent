@@ -13,6 +13,7 @@ func validateConfig(cfg *Config) error {
 		validateAgent,
 		validateMode,
 		validateCore,
+		validateSender,
 		validateLog,
 	}
 
@@ -72,6 +73,31 @@ var validLogLevels = map[string]struct{}{
 	"error": {},
 	"fatal": {},
 	"panic": {},
+}
+
+// validateSender validates sender configuration.
+func validateSender(cfg *Config) error {
+	if cfg.Sender.MaxRetries < 0 {
+		return fmt.Errorf("config: sender.max_retries must be >= 0")
+	}
+
+	if cfg.Sender.InitialRetryDelay <= 0 {
+		return fmt.Errorf("config: sender.initial_retry_delay must be > 0")
+	}
+
+	if cfg.Sender.MaxRetryDelay <= 0 {
+		return fmt.Errorf("config: sender.max_retry_delay must be > 0")
+	}
+
+	if cfg.Sender.RequestTimeout <= 0 {
+		return fmt.Errorf("config: sender.request_timeout must be > 0")
+	}
+
+	if cfg.Sender.ClientTimeout <= 0 {
+		return fmt.Errorf("config: sender.client_timeout must be > 0")
+	}
+
+	return nil
 }
 
 // validateLog validates and normalizes logging configuration.

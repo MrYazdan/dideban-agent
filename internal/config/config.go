@@ -34,6 +34,15 @@ type Config struct {
 		Token    string `mapstructure:"token"`
 	} `mapstructure:"core"`
 
+	// Sender configuration
+	Sender struct {
+		MaxRetries        int           `mapstructure:"max_retries"`
+		InitialRetryDelay time.Duration `mapstructure:"initial_retry_delay"`
+		MaxRetryDelay     time.Duration `mapstructure:"max_retry_delay"`
+		RequestTimeout    time.Duration `mapstructure:"request_timeout"`
+		ClientTimeout     time.Duration `mapstructure:"client_timeout"`
+	} `mapstructure:"sender"`
+
 	// Logging configuration
 	Log struct {
 		Level  string `mapstructure:"level"`  // debug, info, warn, error, fatal, panic
@@ -63,7 +72,7 @@ func Load() (*Config, error) {
 	v.AddConfigPath("$HOME/.dideban/agent")
 
 	// Environment variable support
-	v.SetEnvPrefix("DIDEBAN_AGENT")
+	v.SetEnvPrefix("DIDEBAN")
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
