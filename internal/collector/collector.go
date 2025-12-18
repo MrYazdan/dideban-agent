@@ -107,22 +107,3 @@ type Metrics struct {
 	Memory MemStats  `json:"memory"`
 	Disk   DiskStats `json:"disk"`
 }
-
-// Print outputs metrics in a human-readable structured log.
-// This method is intended for development and debugging only.
-func (m *Metrics) Print() {
-	log.Info().
-		Str("agent_id", m.AgentID).
-		Float64("cpu_usage", m.CPU.UsagePercent).
-		Float64("load_1", m.CPU.Load1).
-		Float64("load_5", m.CPU.Load5).
-		Float64("load_15", m.CPU.Load15).
-		Uint64("memory_used_mb", m.Memory.UsedMB).
-		Uint64("memory_total_mb", m.Memory.TotalMB).
-		Float64("memory_usage", m.Memory.UsagePercent).
-		Uint64("disk_used_gb", m.Disk.UsedGB).
-		Uint64("disk_total_gb", m.Disk.TotalGB).
-		Float64("disk_usage", m.Disk.UsagePercent).
-		Int64("collect_duration_ms", m.CollectDuration).
-		Msg("📊 Collected Metrics")
-}

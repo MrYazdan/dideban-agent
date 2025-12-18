@@ -38,19 +38,33 @@ func (c *CPUCollector) Collect(ctx context.Context, metrics *Metrics) error {
 	default:
 	}
 
-	// TODO: cpu.Percent blocks for the given interval.
-	// Consider replacing with a context-aware wrapper or CPU delta calculation
-	// if faster shutdown is required.
-	//
-	// Retrieve average CPU usage across all cores.
-	// The call blocks for the given interval to calculate usage.
-	percentages, err := cpu.Percent(time.Second, false)
-	if err != nil {
-		return fmt.Errorf("failed to get CPU usage: %w", err)
+	// Use a goroutine with context to make CPU collection cancellable
+	type cpuResult struct {
+		percentages []float64
+		err         error
 	}
 
-	if len(percentages) > 0 {
-		metrics.CPU.UsagePercent = math.Round(percentages[0])
+	cpuChan := make(chan cpuResult, 1)
+	go func() {
+		// Get CPU usage with a short interval for responsiveness
+		percentages, err := cpu.Percent(200*time.Millisecond, false)
+		cpuChan <- cpuResult{percentages: percentages, err: err}
+	}()
+
+	// Wait for CPU result or context cancellation
+	var cpuRes cpuResult
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case cpuRes = <-cpuChan:
+	}
+
+	if cpuRes.err != nil {
+		return fmt.Errorf("failed to get CPU usage: %w", cpuRes.err)
+	}
+
+	if len(cpuRes.percentages) > 0 {
+		metrics.CPU.UsagePercent = math.Round(cpuRes.percentages[0])
 	}
 
 	// Retrieve system load averages (1m, 5m, 15m)
