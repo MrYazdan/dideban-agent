@@ -10,6 +10,7 @@ import (
 	"dideban-agent/internal/collector"
 	"dideban-agent/internal/config"
 	"dideban-agent/internal/logger"
+	"dideban-agent/internal/sender"
 
 	"github.com/rs/zerolog/log"
 )
@@ -43,11 +44,16 @@ func main() {
 	// Initialize metrics collector subsystem
 	metricsCollector := collector.New()
 
-	// Initialize sender
-	// TODO : HTTP sender
+	// Initialize sender based on application mode
+	metricsSender := initSender(cfg)
+	defer func() {
+		if err := metricsSender.Close(); err != nil {
+			log.Warn().Err(err).Msg("Failed to close sender")
+		}
+	}()
 
 	// Start the main agent execution loop (blocking call)
-	runAgent(ctx, cfg, metricsCollector)
+	runAgent(ctx, cfg, metricsCollector, metricsSender)
 
 	log.Info().Msg("Agent shutdown complete")
 }
@@ -59,14 +65,14 @@ func runAgent(
 	ctx context.Context,
 	cfg *config.Config,
 	collector *collector.Collector,
-	// TODO: sender implementation,
+	sender sender.Sender,
 ) {
 	// Ticker controls the metric collection interval
 	ticker := time.NewTicker(cfg.Agent.Interval)
 	defer ticker.Stop()
 
 	// Perform an initial metric collection immediately on startup
-	collectOnce(ctx, cfg, collector)
+	collectOnce(ctx, cfg, collector, sender)
 
 	for {
 		select {
@@ -77,21 +83,18 @@ func runAgent(
 
 		// Trigger metric collection on each tick
 		case <-ticker.C:
-			collectOnce(ctx, cfg, collector)
+			collectOnce(ctx, cfg, collector, sender)
 		}
 	}
 }
 
 // collectOnce performs a single cycle of metric collection and processing.
-//
-// Depending on the application mode:
-//   - Development mode: metrics are printed to stdout
-//   - Production mode: metrics will be sent to a remote endpoint (TODO)
+// Metrics are sent using the configured sender implementation.
 func collectOnce(
 	ctx context.Context,
 	cfg *config.Config,
 	collector *collector.Collector,
-	// TODO: sender implementation,
+	sender sender.Sender,
 ) {
 	// Collect system metrics using all registered collectors
 	metrics, err := collector.CollectAll(ctx, cfg.Agent.ID)
@@ -100,14 +103,13 @@ func collectOnce(
 		log.Warn().Err(err).Msg("Metrics collected with errors")
 	}
 
-	// In development mode, simply print metrics to logs
-	if cfg.Mode == config.ModeDevelopment {
-		metrics.Print()
+	// Send metrics using the configured sender
+	if err := sender.Send(ctx, metrics); err != nil {
+		log.Error().Err(err).Msg("Failed to send metrics")
 		return
 	}
 
-	// In production mode, metrics will be sent to the backend
-	// TODO: Implement HTTP sender integration
+	log.Debug().Msg("📊 Metrics collection and transmission completed")
 }
 
 // setupSignalHandlers configures OS signal handling
@@ -154,6 +156,33 @@ func initLogger(cfg *config.Config) {
 	logger.Init(cfg)
 }
 
+// initSender creates and configures the appropriate sender based on application mode.
+func initSender(cfg *config.Config) sender.Sender {
+	if cfg.Mode == config.ModeDevelopment {
+		// Use mock sender in development mode
+		mockConfig := sender.DefaultMockConfig()
+		log.Info().Msg("🧪 Initializing mock sender for development")
+		return sender.NewMockSender(mockConfig)
+	}
+
+	// Use HTTP sender in production mode
+	httpConfig := sender.HTTPConfig{
+		MaxRetries:        cfg.Sender.MaxRetries,
+		InitialRetryDelay: cfg.Sender.InitialRetryDelay,
+		MaxRetryDelay:     cfg.Sender.MaxRetryDelay,
+		RequestTimeout:    cfg.Sender.RequestTimeout,
+		ClientTimeout:     cfg.Sender.ClientTimeout,
+	}
+
+	log.Info().
+		Str("endpoint", cfg.Core.Endpoint).
+		Int("max_retries", httpConfig.MaxRetries).
+		Dur("request_timeout", httpConfig.RequestTimeout).
+		Msg("📤 Initializing HTTP sender")
+
+	return sender.NewHTTPSender(cfg.Core.Endpoint, cfg.Core.Token, httpConfig)
+}
+
 // logStartup logs essential startup metadata such as agent ID,
 // version and collection interval.
 func logStartup(cfg *config.Config) {
@@ -161,5 +190,6 @@ func logStartup(cfg *config.Config) {
 		Str("version", "0.1.0").
 		Str("agent_id", cfg.Agent.ID).
 		Dur("interval", cfg.Agent.Interval).
+		Str("mode", cfg.Mode).
 		Msg("🚀 Starting Dideban Agent")
 }
