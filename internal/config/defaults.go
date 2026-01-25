@@ -14,7 +14,7 @@ import (
 func setDefaults(v *viper.Viper) {
 	// Agent defaults
 	v.SetDefault("agent.interval", 30*time.Second)
-	v.SetDefault("agent.id", getDefaultAgentID())
+	v.SetDefault("agent.name", getDefaultAgentName())
 
 	// Core defaults (empty by default, required in production)
 	v.SetDefault("core.endpoint", "")
@@ -37,7 +37,7 @@ func setDefaults(v *viper.Viper) {
 
 // getDefaultAgentID generates a default agent identifier
 // based on the system hostname.
-func getDefaultAgentID() string {
+func getDefaultAgentName() string {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "unknown-host"

@@ -57,7 +57,6 @@ func (m *MockSender) Send(ctx context.Context, metrics *collector.Metrics) error
 	// Log metrics if verbose logging is enabled
 	if m.config.VerboseLogging {
 		log.Info().
-			Str("agent_id", metrics.AgentID).
 			Int64("timestamp", metrics.Timestamp).
 			Float64("cpu_usage_percent", metrics.CPU.UsagePercent).
 			Float64("memory_usage_percent", metrics.Memory.UsagePercent).

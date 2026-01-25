@@ -72,7 +72,7 @@ func runAgent(
 	defer ticker.Stop()
 
 	// Perform an initial metric collection immediately on startup
-	collectOnce(ctx, cfg, collector, sender)
+	collectOnce(ctx, collector, sender)
 
 	for {
 		select {
@@ -83,7 +83,7 @@ func runAgent(
 
 		// Trigger metric collection on each tick
 		case <-ticker.C:
-			collectOnce(ctx, cfg, collector, sender)
+			collectOnce(ctx, collector, sender)
 		}
 	}
 }
@@ -92,12 +92,11 @@ func runAgent(
 // Metrics are sent using the configured sender implementation.
 func collectOnce(
 	ctx context.Context,
-	cfg *config.Config,
 	collector *collector.Collector,
 	sender sender.Sender,
 ) {
 	// Collect system metrics using all registered collectors
-	metrics, err := collector.CollectAll(ctx, cfg.Agent.ID)
+	metrics, err := collector.CollectAll(ctx)
 	if err != nil {
 		// Partial metrics may still be available even if an error occurred
 		log.Warn().Err(err).Msg("Metrics collected with errors")
@@ -183,12 +182,12 @@ func initSender(cfg *config.Config) sender.Sender {
 	return sender.NewHTTPSender(cfg.Core.Endpoint, cfg.Core.Token, httpConfig)
 }
 
-// logStartup logs essential startup metadata such as agent ID,
+// logStartup logs essential startup metadata such as agent Name,
 // version and collection interval.
 func logStartup(cfg *config.Config) {
 	log.Info().
-		Str("version", "0.1.0").
-		Str("agent_id", cfg.Agent.ID).
+		Str("version", "0.1.1").
+		Str("agent_name", cfg.Agent.Name).
 		Dur("interval", cfg.Agent.Interval).
 		Str("mode", cfg.Mode).
 		Msg("🚀 Starting Dideban Agent")
