@@ -3,8 +3,8 @@
 
 # Agent configuration
 agent:
-  # Unique identifier for this agent instance
-  id: "vpc-node-01"
+  # Agent name
+  name: "vpc-node-01"
   
   # Metric collection interval
   interval: 30s

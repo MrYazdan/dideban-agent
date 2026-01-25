@@ -27,7 +27,7 @@ const (
 type Config struct {
 	// Agent-specific configuration
 	Agent struct {
-		ID       string        `mapstructure:"id"`
+		Name     string        `mapstructure:"name"`
 		Interval time.Duration `mapstructure:"interval"`
 	} `mapstructure:"agent"`
 

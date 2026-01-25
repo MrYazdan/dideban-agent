@@ -28,8 +28,8 @@ func validateConfig(cfg *Config) error {
 
 // validateAgent validates agent-specific configuration.
 func validateAgent(cfg *Config) error {
-	if cfg.Agent.ID == "" {
-		return fmt.Errorf("config: agent.id is required")
+	if cfg.Agent.Name == "" {
+		return fmt.Errorf("config: agent.name is required")
 	}
 
 	if cfg.Agent.Interval <= 0 {

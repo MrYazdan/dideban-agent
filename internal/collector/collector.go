@@ -49,11 +49,10 @@ func New() *Collector {
 // Returns:
 //   - *Metrics: collected metrics (maybe partial)
 //   - error: combined error if any collector fails
-func (c *Collector) CollectAll(ctx context.Context, agentID string) (*Metrics, error) {
+func (c *Collector) CollectAll(ctx context.Context) (*Metrics, error) {
 	start := time.Now()
 
 	metrics := &Metrics{
-		AgentID:   agentID,
 		Timestamp: time.Now().UnixMilli(),
 	}
 
@@ -99,9 +98,8 @@ func (c *Collector) CollectAll(ctx context.Context, agentID string) (*Metrics, e
 
 // Metrics represents a snapshot of all collected system metrics.
 type Metrics struct {
-	AgentID         string `json:"agent_id"`
-	Timestamp       int64  `json:"timestamp_ms"`
-	CollectDuration int64  `json:"collect_duration_ms"`
+	Timestamp       int64 `json:"timestamp_ms"`
+	CollectDuration int64 `json:"collect_duration_ms"`
 
 	CPU    CPUStats  `json:"cpu"`
 	Memory MemStats  `json:"memory"`
