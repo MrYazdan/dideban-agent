@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"runtime"
 
 	"github.com/shirou/gopsutil/disk"
 )
@@ -19,14 +18,24 @@ func (d *DiskCollector) Name() string {
 	return "disk"
 }
 
-// DiskStats represents disk-related metrics for a specific filesystem.
+// DiskStats represents disk-related metrics for the primary filesystem.
 type DiskStats struct {
-	UsedGB       uint64  `json:"used_gb"`
-	TotalGB      uint64  `json:"total_gb"`
+	// UsedGB is the amount of disk space currently in use, in gigabytes.
+	UsedGB uint64 `json:"used_gb"`
+
+	// TotalGB is the total disk capacity, in gigabytes.
+	TotalGB uint64 `json:"total_gb"`
+
+	// UsagePercent is the disk utilization as a percentage (0–100).
 	UsagePercent float64 `json:"usage_percent"`
 }
 
-// Collect gathers disk usage metrics for the root filesystem.
+// Collect gathers disk usage metrics for the primary filesystem.
+//
+// The monitored path is platform-specific and resolved via rootDiskPath():
+//   - Linux / macOS: "/"  (root filesystem)
+//   - Windows:       "C:\" (system drive root, with trailing backslash required by gopsutil)
+//
 // The operation respects the provided context for cancellation.
 func (d *DiskCollector) Collect(ctx context.Context, metrics *Metrics) error {
 	// Check if the context has already been cancelled
@@ -36,14 +45,12 @@ func (d *DiskCollector) Collect(ctx context.Context, metrics *Metrics) error {
 	default:
 	}
 
-	// Retrieve disk usage statistics for the root filesystem
-	path := "/"
-	if runtime.GOOS == "windows" {
-		path = "C:"
-	}
+	// Resolve the platform-specific root path (see disk_path_unix.go / disk_path_windows.go)
+	path := rootDiskPath()
+
 	usage, err := disk.Usage(path)
 	if err != nil {
-		return fmt.Errorf("failed to get disk usage: %w", err)
+		return fmt.Errorf("failed to get disk usage for %q: %w", path, err)
 	}
 
 	metrics.Disk.UsedGB = usage.Used / 1024 / 1024 / 1024
