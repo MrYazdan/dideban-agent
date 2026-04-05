@@ -28,10 +28,6 @@ func validateConfig(cfg *Config) error {
 
 // validateAgent validates agent-specific configuration.
 func validateAgent(cfg *Config) error {
-	if cfg.Agent.Name == "" {
-		return fmt.Errorf("config: agent.name is required")
-	}
-
 	if cfg.Agent.Interval <= 0 {
 		return fmt.Errorf("config: agent.interval must be greater than zero")
 	}
@@ -111,10 +107,6 @@ func validateLog(cfg *Config) error {
 			"config: invalid log.level: %s (valid: debug, info, warn, error, fatal, panic)",
 			cfg.Log.Level,
 		)
-	}
-
-	if cfg.Log.Pretty && cfg.Mode == ModeProduction {
-		return fmt.Errorf("config: log.pretty is not allowed in production mode")
 	}
 
 	return nil

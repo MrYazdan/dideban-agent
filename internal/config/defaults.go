@@ -1,7 +1,6 @@
 package config
 
 import (
-	"os"
 	"time"
 
 	"github.com/spf13/viper"
@@ -14,7 +13,6 @@ import (
 func setDefaults(v *viper.Viper) {
 	// Agent defaults
 	v.SetDefault("agent.interval", 30*time.Second)
-	v.SetDefault("agent.name", getDefaultAgentName())
 
 	// Core defaults (empty by default, required in production)
 	v.SetDefault("core.endpoint", "")
@@ -35,12 +33,3 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mode", ModeDevelopment)
 }
 
-// getDefaultAgentID generates a default agent identifier
-// based on the system hostname.
-func getDefaultAgentName() string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "unknown-host"
-	}
-	return hostname
-}

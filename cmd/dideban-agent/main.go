@@ -182,12 +182,11 @@ func initSender(cfg *config.Config) sender.Sender {
 	return sender.NewHTTPSender(cfg.Core.Endpoint, cfg.Core.Token, httpConfig)
 }
 
-// logStartup logs essential startup metadata such as agent Name,
+// logStartup logs essential startup metadata such as
 // version and collection interval.
 func logStartup(cfg *config.Config) {
 	log.Info().
 		Str("version", "0.1.1").
-		Str("agent_name", cfg.Agent.Name).
 		Dur("interval", cfg.Agent.Interval).
 		Str("mode", cfg.Mode).
 		Msg("🚀 Starting Dideban Agent")

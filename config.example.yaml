@@ -3,9 +3,6 @@
 
 # Agent configuration
 agent:
-  # Agent name
-  name: "vpc-node-01"
-  
   # Metric collection interval
   interval: 30s
 
@@ -39,7 +36,7 @@ log:
   # Log level: debug, info, warn, error, fatal, panic
   level: "info"
   
-  # Pretty console output (disable in production)
+  # Pretty console output (human-readable; valid in both development and production)
   pretty: true
 
 # Application mode: development or production

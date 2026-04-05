@@ -27,7 +27,7 @@ const (
 type Config struct {
 	// Agent-specific configuration
 	Agent struct {
-		Name     string        `mapstructure:"name"`
+		// Interval controls how frequently metrics are collected and sent.
 		Interval time.Duration `mapstructure:"interval"`
 	} `mapstructure:"agent"`
 
