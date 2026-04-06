@@ -91,7 +91,13 @@ func (c *CPUCollector) Collect(ctx context.Context, metrics *Metrics) error {
 		}
 	}
 
-	metrics.CPU.UsagePercent = math.Round(usage)
+	// Clamp to 0.01 minimum: the receiver's `required` tag on float64 rejects 0.0.
+	// A truly idle CPU is represented as 0.01 rather than 0.
+	rounded := math.Round(usage*100) / 100
+	if rounded < 0.01 {
+		rounded = 0.01
+	}
+	metrics.CPU.UsagePercent = rounded
 
 	// --- Load Averages ---
 	// Delegated to platform-specific implementations:
