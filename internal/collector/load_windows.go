@@ -79,6 +79,33 @@ func (t *windowsLoadTracker) averageOver(window time.Duration) float64 {
 	return sum / float64(count)
 }
 
+// averageOverOrFallback is like averageOver but returns the fallback value
+// instead of 0 when no samples exist within the window.
+//
+// This is used during cold start to ensure load fields are never zero
+// solely due to missing history — the current instantaneous value is used
+// as a reasonable approximation until the window fills up.
+func (t *windowsLoadTracker) averageOverOrFallback(window time.Duration, fallback float64) float64 {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	cutoff := time.Now().Add(-window)
+	var sum float64
+	var count int
+
+	for _, s := range t.samples {
+		if s.at.After(cutoff) {
+			sum += s.value
+			count++
+		}
+	}
+
+	if count == 0 {
+		return fallback
+	}
+	return sum / float64(count)
+}
+
 // collectLoadAvg queries the Windows WMI for the current processor queue length,
 // records it in the rolling tracker, and populates the CPUStats load fields.
 //
@@ -87,25 +114,30 @@ func (t *windowsLoadTracker) averageOver(window time.Duration) float64 {
 //   - Load5  → rolling average of queue length over the last 5 minutes
 //   - Load15 → rolling average of queue length over the last 15 minutes
 //
-// On the very first call (cold start), Load5 and Load15 will equal Load1
-// since there is no historical data yet. They converge to true averages
-// as samples accumulate over time.
+// Cold-start guarantee:
+//   On the very first call (or when the rolling window has no samples yet for a
+//   given interval), the current instantaneous queue length is used as a fallback
+//   instead of 0. This ensures the receiver's `required` field validation never
+//   fails due to missing history — the values converge to true rolling averages
+//   as samples accumulate over time.
+//
+// On WMI query failure, a warning is logged and all load fields are set to 0.
+// The receiver must tolerate 0 as a valid (non-error) load value.
 func collectLoadAvg(stats *CPUStats) {
 	var result []win32PerfRawDataPerfOSProcessorQueue
 
-	// Query WMI for the current processor queue length.
-	// The WHERE clause is required by WMI for this class.
 	err := wmi.Query(
 		"SELECT ProcessorQueueLength FROM Win32_PerfRawData_PerfOS_System",
 		&result,
 	)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to query WMI for processor queue length; skipping load averages")
+		log.Warn().Err(err).Msg("Failed to query WMI for processor queue length; load averages will be 0")
+		// Fields remain at zero — still present in JSON (no omitempty), satisfying `required`.
 		return
 	}
 
 	if len(result) == 0 {
-		log.Warn().Msg("WMI returned no rows for processor queue length")
+		log.Warn().Msg("WMI returned no rows for processor queue length; load averages will be 0")
 		return
 	}
 
@@ -114,8 +146,10 @@ func collectLoadAvg(stats *CPUStats) {
 	// Record the sample for rolling average computation
 	globalLoadTracker.record(queueLen)
 
-	// Populate load fields using rolling averages over standard Unix windows
-	stats.Load1 = globalLoadTracker.averageOver(1 * time.Minute)
-	stats.Load5 = globalLoadTracker.averageOver(5 * time.Minute)
-	stats.Load15 = globalLoadTracker.averageOver(15 * time.Minute)
+	// Compute rolling averages. averageOverOrFallback returns the current
+	// instantaneous queue length when the window has no history yet,
+	// guaranteeing a non-zero value on cold start (if the system is actually busy).
+	stats.Load1 = globalLoadTracker.averageOverOrFallback(1*time.Minute, queueLen)
+	stats.Load5 = globalLoadTracker.averageOverOrFallback(5*time.Minute, queueLen)
+	stats.Load15 = globalLoadTracker.averageOverOrFallback(15*time.Minute, queueLen)
 }
